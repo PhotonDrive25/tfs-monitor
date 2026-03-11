@@ -13,8 +13,6 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
-# ── Configuration ────────────────────────────────────────────────────────────
-
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -25,7 +23,6 @@ HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 }
 
-# Products to track — add or remove as needed
 TRACKED_PRODUCTS = [
     "Dior Sauvage",
     "Chanel No 5",
@@ -39,7 +36,6 @@ TRACKED_PRODUCTS = [
     "Versace Eros",
 ]
 
-# Competitor pages to scrape
 COMPETITORS = {
     "The Perfume Shop": {
         "offers_url": "https://www.theperfumeshop.com/offers",
@@ -61,118 +57,78 @@ COMPETITORS = {
     },
 }
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
 
-def fetch(url, retries=2):
-    """Fetch a URL with retries and polite delay."""
+def fetch(url, retries=1):
+    """Fetch a URL - fail fast if blocked, only 1 retry."""
     for attempt in range(retries + 1):
         try:
-            time.sleep(random.uniform(1.5, 3.0))
-            resp = requests.get(url, headers=HEADERS, timeout=15)
+            time.sleep(random.uniform(1.0, 2.0))
+            resp = requests.get(url, headers=HEADERS, timeout=8)
             resp.raise_for_status()
             return resp.text
         except Exception as e:
             if attempt == retries:
-                print(f"  ✗ Failed to fetch {url}: {e}")
+                print(f"  ✗ Failed: {e}")
                 return None
-            print(f"  ↺ Retry {attempt + 1} for {url}")
+            print(f"  ↺ Retry {attempt + 1}")
     return None
 
 
 def extract_prices(html, product_name):
-    """Extract prices matching a product name from page HTML."""
     if not html:
         return []
-
     soup = BeautifulSoup(html, "html.parser")
     results = []
     product_words = [w.lower() for w in product_name.split() if len(w) > 2]
-
-    # Find all price-like elements
     price_pattern = re.compile(r"£\s*(\d+\.?\d*)")
-
-    # Search through text nodes near product mentions
     all_text = soup.get_text(" ", strip=True)
-
-    # Look for product mentions with nearby prices
     for match in re.finditer(r"£\s*\d+\.?\d*", all_text):
         context_start = max(0, match.start() - 200)
         context_end = min(len(all_text), match.end() + 200)
         context = all_text[context_start:context_end].lower()
-
         if any(word in context for word in product_words):
             price_match = price_pattern.search(match.group())
             if price_match:
                 price_val = float(price_match.group(1))
-                if 10 < price_val < 500:  # Sane fragrance price range
+                if 10 < price_val < 500:
                     results.append(price_val)
-
     return sorted(set(results))
 
 
 def extract_promotions(html, competitor_name):
-    """Extract current promotions from a competitor's offers page."""
     if not html:
         return []
-
     soup = BeautifulSoup(html, "html.parser")
     promos = []
-
-    # Promotion keywords to look for
     promo_patterns = [
-        r"\d+%\s*off",
-        r"buy\s+\d+\s+get\s+\d+",
-        r"3\s*for\s*2",
-        r"2\s*for\s*1",
-        r"free\s+\w+",
-        r"save\s+£\d+",
-        r"was\s+£[\d.]+\s+now\s+£[\d.]+",
-        r"½\s*price",
-        r"half\s+price",
-        r"spend\s+£\d+\s+save",
-        r"\d+\s+for\s+£\d+",
+        r"\d+%\s*off", r"buy\s+\d+\s+get\s+\d+", r"3\s*for\s*2",
+        r"2\s*for\s*1", r"free\s+\w+", r"save\s+£\d+",
+        r"was\s+£[\d.]+\s+now\s+£[\d.]+", r"half\s+price",
+        r"spend\s+£\d+\s+save", r"\d+\s+for\s+£\d+",
     ]
-
     full_text = soup.get_text(" ", strip=True)
-
     seen = set()
     for pattern in promo_patterns:
         for match in re.finditer(pattern, full_text, re.IGNORECASE):
-            # Get surrounding context
             start = max(0, match.start() - 60)
             end = min(len(full_text), match.end() + 60)
-            snippet = full_text[start:end].strip()
-
-            # Clean up whitespace
-            snippet = re.sub(r"\s+", " ", snippet)
-
+            snippet = re.sub(r"\s+", " ", full_text[start:end].strip())
             if snippet not in seen and len(snippet) > 10:
                 seen.add(snippet)
-                promos.append({
-                    "type": match.group(0).lower(),
-                    "context": snippet[:150],
-                })
+                promos.append({"type": match.group(0).lower(), "context": snippet[:150]})
                 if len(promos) >= 8:
                     break
-
     return promos
 
 
 def scrape_competitor(name, config):
-    """Scrape a single competitor for promotions and prices."""
     print(f"\n🔍 Scraping {name}...")
     result = {
-        "name": name,
-        "color": config["color"],
+        "name": name, "color": config["color"],
         "scraped_at": datetime.now(timezone.utc).isoformat(),
-        "status": "ok",
-        "promotions": [],
-        "prices": {},
-        "errors": [],
+        "status": "ok", "promotions": [], "prices": {}, "errors": [],
     }
-
-    # Scrape offers page
-    print(f"  → Offers page: {config['offers_url']}")
+    print(f"  → Offers page")
     offers_html = fetch(config["offers_url"])
     if offers_html:
         result["promotions"] = extract_promotions(offers_html, name)
@@ -181,25 +137,19 @@ def scrape_competitor(name, config):
         result["errors"].append("Could not load offers page")
         result["status"] = "partial"
 
-    # Scrape prices for tracked products
-    for product in TRACKED_PRODUCTS[:5]:  # Limit to 5 to be polite
+    for product in TRACKED_PRODUCTS[:5]:
         search_url = config["search_url"].format(
-            product.replace(" ", "+"), product.replace(" ", "+")
-        )
-        print(f"  → Searching: {product}")
+            product.replace(" ", "+"), product.replace(" ", "+"))
+        print(f"  → Price: {product}")
         html = fetch(search_url)
         prices = extract_prices(html, product) if html else []
+        result["prices"][product] = prices[0] if prices else None
         if prices:
-            result["prices"][product] = prices[0]  # Take lowest price found
             print(f"     £{prices[0]}")
-        else:
-            result["prices"][product] = None
-
     return result
 
 
 def load_previous(data_file):
-    """Load previous results to detect changes."""
     if data_file.exists():
         try:
             with open(data_file) as f:
@@ -210,49 +160,32 @@ def load_previous(data_file):
 
 
 def detect_changes(current, previous):
-    """Compare current vs previous results to highlight changes."""
     changes = []
     if not previous:
         return changes
-
     prev_by_name = {c["name"]: c for c in previous.get("competitors", [])}
-
     for comp in current.get("competitors", []):
         prev = prev_by_name.get(comp["name"])
         if not prev:
             continue
-
-        # Detect price changes
         for product, price in comp["prices"].items():
             prev_price = prev.get("prices", {}).get(product)
             if price and prev_price and price != prev_price:
-                diff = price - prev_price
-                direction = "up" if diff > 0 else "down"
                 changes.append({
-                    "competitor": comp["name"],
-                    "type": "price_change",
-                    "product": product,
-                    "old_price": prev_price,
-                    "new_price": price,
-                    "direction": direction,
-                    "amount": abs(diff),
+                    "competitor": comp["name"], "type": "price_change",
+                    "product": product, "old_price": prev_price, "new_price": price,
+                    "direction": "up" if price > prev_price else "down",
+                    "amount": abs(price - prev_price),
                 })
-
-        # Detect new promotions (simple count change)
-        prev_promo_count = len(prev.get("promotions", []))
-        curr_promo_count = len(comp.get("promotions", []))
-        if curr_promo_count != prev_promo_count:
+        prev_count = len(prev.get("promotions", []))
+        curr_count = len(comp.get("promotions", []))
+        if curr_count != prev_count:
             changes.append({
-                "competitor": comp["name"],
-                "type": "promotion_change",
-                "old_count": prev_promo_count,
-                "new_count": curr_promo_count,
+                "competitor": comp["name"], "type": "promotion_change",
+                "old_count": prev_count, "new_count": curr_count,
             })
-
     return changes
 
-
-# ── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
     print("=" * 60)
@@ -262,7 +195,6 @@ def main():
 
     data_file = Path("data/results.json")
     data_file.parent.mkdir(exist_ok=True)
-
     previous = load_previous(data_file)
 
     results = {
@@ -273,41 +205,20 @@ def main():
 
     for name, config in COMPETITORS.items():
         try:
-            competitor_data = scrape_competitor(name, config)
-            results["competitors"].append(competitor_data)
+            results["competitors"].append(scrape_competitor(name, config))
         except Exception as e:
-            print(f"  ✗ Unexpected error scraping {name}: {e}")
+            print(f"  ✗ Unexpected error: {e}")
             results["competitors"].append({
-                "name": name,
-                "color": config["color"],
-                "status": "error",
-                "error": str(e),
-                "promotions": [],
-                "prices": {},
+                "name": name, "color": config["color"], "status": "error",
+                "error": str(e), "promotions": [], "prices": {},
             })
 
-    # Detect changes vs previous run
     results["changes"] = detect_changes(results, previous)
 
-    # Save results
     with open(data_file, "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"\n✅ Done — saved to {data_file}")
-    print(f"   {len(results['competitors'])} competitors scraped")
-    print(f"   {len(results['changes'])} changes detected vs last run")
-
-    # Print summary of changes
-    if results["changes"]:
-        print("\n📊 Changes detected:")
-        for change in results["changes"]:
-            if change["type"] == "price_change":
-                arrow = "📈" if change["direction"] == "up" else "📉"
-                print(f"   {arrow} {change['competitor']} — {change['product']}: "
-                      f"£{change['old_price']} → £{change['new_price']}")
-            elif change["type"] == "promotion_change":
-                print(f"   🏷️  {change['competitor']} — promotions changed: "
-                      f"{change['old_count']} → {change['new_count']}")
+    print(f"\n✅ Done — {len(results['competitors'])} competitors, {len(results['changes'])} changes")
 
 
 if __name__ == "__main__":
