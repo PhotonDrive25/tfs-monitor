@@ -1,6 +1,6 @@
 """
-TFS Competitor Monitor - Web Scraper
-Runs daily via GitHub Actions and saves results to docs/results.json
+TFS Competitor Monitor - Web Scraper v2
+Now captures bottle sizes alongside prices.
 """
 
 import json
@@ -40,22 +40,23 @@ COMPETITORS = {
     "The Perfume Shop": {
         "offers_url": "https://www.theperfumeshop.com/offers",
         "search_url": "https://www.theperfumeshop.com/search?q={}",
-        "base_url": "https://www.theperfumeshop.com",
         "color": "#c8a96e",
     },
     "Boots": {
         "offers_url": "https://www.boots.com/beauty/fragrance/fragrance-offers",
         "search_url": "https://www.boots.com/search?q={}+perfume&searchtext={}+perfume",
-        "base_url": "https://www.boots.com",
         "color": "#004f9f",
     },
     "Superdrug": {
         "offers_url": "https://www.superdrug.com/fragrance/c/fragrance?q=%3Arelevance%3AonOffer%3Atrue",
         "search_url": "https://www.superdrug.com/search?q={}",
-        "base_url": "https://www.superdrug.com",
         "color": "#e2007a",
     },
 }
+
+# Size pattern — matches: 50ml, 100 ml, 75ML, 1.7oz, 200ml etc.
+SIZE_PATTERN = re.compile(r"(\d+\.?\d*)\s*(ml|ML|Ml|oz|OZ)", re.IGNORECASE)
+PRICE_PATTERN = re.compile(r"£\s*(\d+\.?\d*)")
 
 
 def fetch(url, retries=1):
@@ -74,28 +75,67 @@ def fetch(url, retries=1):
     return None
 
 
+def extract_size_from_context(context):
+    """Pull the most relevant bottle size from surrounding text."""
+    size_match = SIZE_PATTERN.search(context)
+    if size_match:
+        amount = size_match.group(1)
+        unit = size_match.group(2).lower()
+        # Normalise: remove .0 from whole numbers
+        if amount.endswith(".0"):
+            amount = amount[:-2]
+        return f"{amount}{unit}"
+    return None
+
+
 def extract_prices(html, product_name):
+    """
+    Returns a list of dicts: [{"price": 85.0, "size": "100ml"}, ...]
+    sorted by price ascending.
+    """
     if not html:
         return []
+
     soup = BeautifulSoup(html, "html.parser")
     results = []
+    seen_prices = set()
     product_words = [w.lower() for w in product_name.split() if len(w) > 2]
-    price_pattern = re.compile(r"£\s*(\d+\.?\d*)")
     all_text = soup.get_text(" ", strip=True)
+
     for match in re.finditer(r"£\s*\d+\.?\d*", all_text):
-        context_start = max(0, match.start() - 200)
-        context_end = min(len(all_text), match.end() + 200)
-        context = all_text[context_start:context_end].lower()
-        if any(word in context for word in product_words):
-            price_match = price_pattern.search(match.group())
-            if price_match:
-                price_val = float(price_match.group(1))
-                if 10 < price_val < 500:
-                    results.append(price_val)
-    return sorted(set(results))
+        context_start = max(0, match.start() - 250)
+        context_end = min(len(all_text), match.end() + 250)
+        context = all_text[context_start:context_end]
+        context_lower = context.lower()
+
+        # Must mention the product
+        if not any(word in context_lower for word in product_words):
+            continue
+
+        price_match = PRICE_PATTERN.search(match.group())
+        if not price_match:
+            continue
+
+        price_val = float(price_match.group(1))
+        if not (10 < price_val < 500):
+            continue
+
+        # Avoid duplicates
+        if price_val in seen_prices:
+            continue
+        seen_prices.add(price_val)
+
+        # Try to find the bottle size in the same context window
+        size = extract_size_from_context(context)
+
+        results.append({"price": price_val, "size": size})
+
+    # Sort cheapest first
+    results.sort(key=lambda x: x["price"])
+    return results
 
 
-def extract_promotions(html, competitor_name):
+def extract_promotions(html):
     if not html:
         return []
     soup = BeautifulSoup(html, "html.parser")
@@ -124,28 +164,38 @@ def extract_promotions(html, competitor_name):
 def scrape_competitor(name, config):
     print(f"\n🔍 Scraping {name}...")
     result = {
-        "name": name, "color": config["color"],
+        "name": name,
+        "color": config["color"],
         "scraped_at": datetime.now(timezone.utc).isoformat(),
-        "status": "ok", "promotions": [], "prices": {}, "errors": [],
+        "status": "ok",
+        "promotions": [],
+        # prices is now: { "Dior Sauvage": [{"price": 85.0, "size": "100ml"}, ...] }
+        "prices": {},
+        "errors": [],
     }
-    print(f"  → Offers page")
+
+    # Scrape offers page
     offers_html = fetch(config["offers_url"])
     if offers_html:
-        result["promotions"] = extract_promotions(offers_html, name)
-        print(f"  ✓ Found {len(result['promotions'])} promotions")
+        result["promotions"] = extract_promotions(offers_html)
+        print(f"  ✓ {len(result['promotions'])} promotions")
     else:
         result["errors"].append("Could not load offers page")
         result["status"] = "partial"
 
+    # Scrape prices
     for product in TRACKED_PRODUCTS[:5]:
-        search_url = config["search_url"].format(
-            product.replace(" ", "+"), product.replace(" ", "+"))
-        print(f"  → Price: {product}")
+        search_url = config["search_url"].format(product.replace(" ", "+"))
+        print(f"  → {product}")
         html = fetch(search_url)
-        prices = extract_prices(html, product) if html else []
-        result["prices"][product] = prices[0] if prices else None
-        if prices:
-            print(f"     £{prices[0]}")
+        variants = extract_prices(html, product) if html else []
+        result["prices"][product] = variants  # list of {price, size}
+        if variants:
+            summary = ", ".join(
+                f"£{v['price']} ({v['size'] or '?'})" for v in variants[:3]
+            )
+            print(f"     {summary}")
+
     return result
 
 
@@ -163,33 +213,54 @@ def detect_changes(current, previous):
     changes = []
     if not previous:
         return changes
+
     prev_by_name = {c["name"]: c for c in previous.get("competitors", [])}
+
     for comp in current.get("competitors", []):
         prev = prev_by_name.get(comp["name"])
         if not prev:
             continue
-        for product, price in comp["prices"].items():
-            prev_price = prev.get("prices", {}).get(product)
-            if price and prev_price and price != prev_price:
+
+        for product, variants in comp["prices"].items():
+            prev_variants = prev.get("prices", {}).get(product, [])
+
+            # Compare cheapest available price for change detection
+            curr_cheapest = variants[0]["price"] if variants else None
+            # Handle old format (plain float) and new format (list of dicts)
+            if prev_variants and isinstance(prev_variants, list) and len(prev_variants) > 0:
+                prev_cheapest = prev_variants[0]["price"] if isinstance(prev_variants[0], dict) else prev_variants[0]
+            elif prev_variants and isinstance(prev_variants, (int, float)):
+                prev_cheapest = prev_variants
+            else:
+                prev_cheapest = None
+
+            if curr_cheapest and prev_cheapest and curr_cheapest != prev_cheapest:
                 changes.append({
-                    "competitor": comp["name"], "type": "price_change",
-                    "product": product, "old_price": prev_price, "new_price": price,
-                    "direction": "up" if price > prev_price else "down",
-                    "amount": abs(price - prev_price),
+                    "competitor": comp["name"],
+                    "type": "price_change",
+                    "product": product,
+                    "old_price": prev_cheapest,
+                    "new_price": curr_cheapest,
+                    "direction": "up" if curr_cheapest > prev_cheapest else "down",
+                    "amount": abs(curr_cheapest - prev_cheapest),
                 })
+
         prev_count = len(prev.get("promotions", []))
         curr_count = len(comp.get("promotions", []))
         if curr_count != prev_count:
             changes.append({
-                "competitor": comp["name"], "type": "promotion_change",
-                "old_count": prev_count, "new_count": curr_count,
+                "competitor": comp["name"],
+                "type": "promotion_change",
+                "old_count": prev_count,
+                "new_count": curr_count,
             })
+
     return changes
 
 
 def main():
     print("=" * 60)
-    print("TFS Competitor Monitor — Scraper")
+    print("TFS Competitor Monitor — Scraper v2 (with bottle sizes)")
     print(f"Running at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("=" * 60)
 
