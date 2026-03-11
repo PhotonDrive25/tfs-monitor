@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-11T07:00:00+00:00",
+  "generated_at": "2026-03-11T20:09:55.018411+00:00",
   "tracked_products": [
     "Dior Sauvage",
     "Chanel No 5",
@@ -16,83 +16,71 @@
     {
       "name": "The Perfume Shop",
       "color": "#c8a96e",
-      "scraped_at": "2026-03-11T07:00:00+00:00",
-      "status": "ok",
-      "promotions": [
-        {
-          "type": "3 for 2",
-          "context": "3 for 2 on selected fragrances — mix and match across hundreds of products"
-        },
-        {
-          "type": "20% off",
-          "context": "20% off when you spend £60 or more on fragrance"
-        },
-        {
-          "type": "free gift",
-          "context": "Free fragrance sample with every order over £30"
-        }
-      ],
+      "scraped_at": "2026-03-11T20:09:55.018425+00:00",
+      "status": "partial",
+      "promotions": [],
       "prices": {
-        "Dior Sauvage": 89.99,
-        "Chanel No 5": 104.0,
-        "YSL Black Opium": 79.99,
-        "Carolina Herrera Good Girl": 74.99,
-        "Hugo Boss Bottled": 49.99
+        "Dior Sauvage": null,
+        "Chanel No 5": null,
+        "YSL Black Opium": null,
+        "Carolina Herrera Good Girl": null,
+        "Hugo Boss Bottled": null
       },
-      "errors": []
+      "errors": [
+        "Could not load offers page"
+      ]
     },
     {
       "name": "Boots",
       "color": "#004f9f",
-      "scraped_at": "2026-03-11T07:00:00+00:00",
+      "scraped_at": "2026-03-11T20:15:07.697414+00:00",
       "status": "ok",
-      "promotions": [
-        {
-          "type": "half price",
-          "context": "Half price on selected women's fragrances this week only"
-        },
-        {
-          "type": "spend £60 save",
-          "context": "Spend £60 save £10 on fragrance and beauty"
-        },
-        {
-          "type": "buy 2 get",
-          "context": "Buy 2 get the cheapest free on selected men's fragrance"
-        }
-      ],
+      "promotions": [],
       "prices": {
-        "Dior Sauvage": 92.0,
-        "Chanel No 5": 109.0,
-        "YSL Black Opium": 82.0,
-        "Carolina Herrera Good Girl": 78.0,
-        "Hugo Boss Bottled": 52.0
+        "Dior Sauvage": null,
+        "Chanel No 5": null,
+        "YSL Black Opium": null,
+        "Carolina Herrera Good Girl": null,
+        "Hugo Boss Bottled": null
       },
       "errors": []
     },
     {
       "name": "Superdrug",
       "color": "#e2007a",
-      "scraped_at": "2026-03-11T07:00:00+00:00",
-      "status": "ok",
-      "promotions": [
-        {
-          "type": "10% off",
-          "context": "Health & Beautycard members get extra 10% off fragrances"
-        },
-        {
-          "type": "save £5",
-          "context": "Save £5 when you spend £25 on fragrance with code SCENT5"
-        }
-      ],
+      "scraped_at": "2026-03-11T20:15:23.981875+00:00",
+      "status": "partial",
+      "promotions": [],
       "prices": {
-        "Dior Sauvage": 87.99,
-        "Chanel No 5": 99.99,
-        "YSL Black Opium": 76.99,
-        "Carolina Herrera Good Girl": 72.0,
-        "Hugo Boss Bottled": 46.99
+        "Dior Sauvage": null,
+        "Chanel No 5": null,
+        "YSL Black Opium": null,
+        "Carolina Herrera Good Girl": null,
+        "Hugo Boss Bottled": null
       },
-      "errors": []
+      "errors": [
+        "Could not load offers page"
+      ]
     }
   ],
-  "changes": []
+  "changes": [
+    {
+      "competitor": "The Perfume Shop",
+      "type": "promotion_change",
+      "old_count": 3,
+      "new_count": 0
+    },
+    {
+      "competitor": "Boots",
+      "type": "promotion_change",
+      "old_count": 3,
+      "new_count": 0
+    },
+    {
+      "competitor": "Superdrug",
+      "type": "promotion_change",
+      "old_count": 2,
+      "new_count": 0
+    }
+  ]
 }
