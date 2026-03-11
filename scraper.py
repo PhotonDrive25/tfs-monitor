@@ -1,6 +1,6 @@
 """
 TFS Competitor Monitor - Web Scraper
-Runs daily via GitHub Actions and saves results to data/results.json
+Runs daily via GitHub Actions and saves results to docs/results.json
 """
 
 import json
@@ -193,7 +193,7 @@ def main():
     print(f"Running at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
     print("=" * 60)
 
-    data_file = Path("data/results.json")
+    data_file = Path("docs/results.json")
     data_file.parent.mkdir(exist_ok=True)
     previous = load_previous(data_file)
 
