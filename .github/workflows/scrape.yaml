@@ -1,0 +1,39 @@
+name: Daily Competitor Scrape
+
+on:
+  # Run every day at 7:00 AM UTC (8:00 AM UK time)
+  schedule:
+    - cron: "0 7 * * *"
+
+  # Also allow running manually from GitHub UI
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4
+
+      - name: Run scraper
+        run: python scraper.py
+
+      - name: Commit and push results
+        run: |
+          git config user.name "TFS Monitor Bot"
+          git config user.email "bot@tfs-monitor"
+          git add data/results.json
+          git diff --staged --quiet || git commit -m "📊 Daily scrape — $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
