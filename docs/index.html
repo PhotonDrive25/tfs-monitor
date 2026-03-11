@@ -1,1 +1,537 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TFS · Competitor Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --tfs-purple: #3d0f52;
+      --tfs-purple-light: #5a1875;
+      --tfs-gold: #c9a84c;
+      --tfs-gold-dim: rgba(201,168,76,0.15);
+      --bg: #0e0118;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(201,168,76,0.15);
+      --text: #e8e0f0;
+      --muted: #7c6f8e;
+      --win: #22c55e;
+      --loss: #ef4444;
+      --neutral: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(ellipse at top, #1e0535 0%, #0e0118 60%);
+      min-height: 100vh;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      padding-bottom: 40px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: rgba(61,15,82,0.6);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    .header-eyebrow {
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      color: var(--tfs-gold);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .header-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      color: #f0eaff;
+    }
+    .last-updated {
+      text-align: right;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 20px 16px 0;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--tfs-gold);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Alert banner ── */
+    .alert-banner {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-left: 3px solid #ef4444;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+      display: none;
+    }
+    .alert-banner.visible { display: block; }
+    .alert-title {
+      font-size: 11px;
+      color: #ef4444;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .alert-item {
+      font-size: 13px;
+      color: #fca5a5;
+      padding: 3px 0;
+      line-height: 1.5;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+
+    /* ── Competitor header ── */
+    .comp-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .comp-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .comp-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 600;
+      flex: 1;
+    }
+    .status-badge {
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .status-ok { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.25); }
+    .status-partial { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+    .status-error { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .tab {
+      flex: 1;
+      padding: 7px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--tfs-gold-dim);
+      border-color: rgba(201,168,76,0.3);
+      color: var(--tfs-gold);
+      font-weight: 600;
+    }
+
+    /* ── Promotions ── */
+    .promo-item {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #c4b8d4;
+      line-height: 1.55;
+    }
+    .promo-tag {
+      display: inline-block;
+      background: rgba(201,168,76,0.12);
+      color: var(--tfs-gold);
+      border: 1px solid rgba(201,168,76,0.2);
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      margin-bottom: 5px;
+    }
+    .no-data {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+      padding: 16px 0;
+    }
+
+    /* ── Price table ── */
+    .price-table { width: 100%; border-collapse: collapse; }
+    .price-table th {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-align: left;
+      padding: 0 0 10px;
+      font-weight: 500;
+    }
+    .price-table td {
+      padding: 9px 0;
+      font-size: 13px;
+      border-top: 1px solid rgba(255,255,255,0.04);
+      vertical-align: middle;
+    }
+    .price-table tr:first-child td { border-top: none; }
+    .product-name { color: #c4b8d4; max-width: 120px; line-height: 1.3; }
+    .price-val { font-weight: 600; font-size: 14px; text-align: right; padding-right: 10px; }
+    .verdict-cell { text-align: right; }
+    .verdict {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .v-win { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.2); }
+    .v-loss { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.2); }
+    .v-null { color: var(--muted); font-size: 12px; }
+
+    /* ── Summary bar ── */
+    .summary-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .summary-pill {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 10px;
+      text-align: center;
+    }
+    .summary-pill .pill-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .summary-pill .pill-label {
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .pill-win .pill-num { color: var(--win); }
+    .pill-loss .pill-num { color: var(--loss); }
+    .pill-promo .pill-num { color: var(--tfs-gold); }
+
+    /* ── Refresh button ── */
+    .refresh-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--tfs-purple), #6b21a8);
+      border: 1px solid rgba(201,168,76,0.3);
+      border-radius: 12px;
+      color: var(--tfs-gold);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: opacity 0.2s;
+    }
+    .refresh-btn:hover { opacity: 0.85; }
+
+    /* ── Panel visibility ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Animations ── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card { animation: fadeIn 0.4s ease both; }
+    .card:nth-child(2) { animation-delay: 0.08s; }
+    .card:nth-child(3) { animation-delay: 0.16s; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="header-eyebrow">🌸 TFS Nuneaton</div>
+      <div class="header-title">Competitor Monitor</div>
+    </div>
+    <div class="last-updated" id="lastUpdated">Loading...</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Changes alert -->
+  <div class="alert-banner" id="alertBanner">
+    <div class="alert-title">⚡ Changes Since Yesterday</div>
+    <div id="alertItems"></div>
+  </div>
+
+  <!-- Summary pills -->
+  <div class="summary-bar" id="summaryBar" style="display:none">
+    <div class="summary-pill pill-win">
+      <div class="pill-num" id="sumWins">—</div>
+      <div class="pill-label">TFS Wins</div>
+    </div>
+    <div class="summary-pill pill-loss">
+      <div class="pill-num" id="sumLosses">—</div>
+      <div class="pill-label">Act On</div>
+    </div>
+    <div class="summary-pill pill-promo">
+      <div class="pill-num" id="sumPromos">—</div>
+      <div class="pill-label">Promos Found</div>
+    </div>
+  </div>
+
+  <!-- Competitor cards -->
+  <div class="section-label">Intelligence Feed</div>
+  <div id="competitorCards"></div>
+
+  <button class="refresh-btn" onclick="window.location.reload()">↺ Refresh Data</button>
+
+</div>
+
+<script>
+// TFS prices for comparison — update these when TFS prices change
+const TFS_PRICES = {
+  "Dior Sauvage": 85.00,
+  "Chanel No 5": 98.00,
+  "YSL Black Opium": 74.00,
+  "Carolina Herrera Good Girl": 70.00,
+  "Hugo Boss Bottled": 45.00,
+  "Armani Acqua di Gio": 62.00,
+  "Paco Rabanne 1 Million": 68.00,
+  "Marc Jacobs Daisy": 59.00,
+  "Thierry Mugler Angel": 72.00,
+  "Versace Eros": 55.00,
+};
+
+function formatDate(iso) {
+  if (!iso) return "Unknown";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+    + " · " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+function switchTab(compIndex, tab) {
+  const panels = document.querySelectorAll(`[data-comp="${compIndex}"]`);
+  panels.forEach(p => p.classList.remove("active"));
+  document.querySelector(`[data-comp="${compIndex}"][data-tab="${tab}"]`).classList.add("active");
+
+  const tabs = document.querySelectorAll(`[data-tab-btn][data-comp="${compIndex}"]`);
+  tabs.forEach(t => t.classList.remove("active"));
+  document.querySelector(`[data-tab-btn][data-comp="${compIndex}"][data-tab="${tab}"]`).classList.add("active");
+}
+
+function renderCompetitor(comp, index) {
+  const statusClass = comp.status === "ok" ? "status-ok" : comp.status === "partial" ? "status-partial" : "status-error";
+  const statusLabel = comp.status === "ok" ? "Live" : comp.status === "partial" ? "Partial" : "Error";
+
+  // Promotions HTML
+  let promosHtml = "";
+  if (comp.promotions && comp.promotions.length > 0) {
+    comp.promotions.forEach(p => {
+      promosHtml += `
+        <div class="promo-item">
+          <div class="promo-tag">${p.type}</div>
+          <div>${p.context}</div>
+        </div>`;
+    });
+  } else {
+    promosHtml = `<div class="no-data">No promotions detected</div>`;
+  }
+
+  // Prices HTML
+  let pricesHtml = "";
+  let wins = 0, losses = 0;
+  if (comp.prices && Object.keys(comp.prices).length > 0) {
+    pricesHtml = `<table class="price-table">
+      <tr><th>Product</th><th style="text-align:right;padding-right:10px">Them</th><th style="text-align:right;padding-right:10px">TFS</th><th style="text-align:right">Verdict</th></tr>`;
+    for (const [product, price] of Object.entries(comp.prices)) {
+      const tfsPrice = TFS_PRICES[product];
+      let verdictHtml = `<span class="v-null">—</span>`;
+      if (price && tfsPrice) {
+        if (tfsPrice < price) {
+          verdictHtml = `<span class="verdict v-win">✓ TFS</span>`;
+          wins++;
+        } else if (tfsPrice > price) {
+          verdictHtml = `<span class="verdict v-loss">Act!</span>`;
+          losses++;
+        } else {
+          verdictHtml = `<span class="verdict" style="color:var(--neutral)">Same</span>`;
+        }
+      }
+      pricesHtml += `
+        <tr>
+          <td class="product-name">${product}</td>
+          <td class="price-val" style="color:${comp.color}">${price ? "£" + price.toFixed(2) : "—"}</td>
+          <td class="price-val" style="color:var(--tfs-gold)">${tfsPrice ? "£" + tfsPrice.toFixed(2) : "—"}</td>
+          <td class="verdict-cell">${verdictHtml}</td>
+        </tr>`;
+    }
+    pricesHtml += `</table>`;
+  } else {
+    pricesHtml = `<div class="no-data">Price data unavailable</div>`;
+  }
+
+  return { html: `
+    <div class="card">
+      <div class="comp-header">
+        <div class="comp-dot" style="background:${comp.color}; box-shadow: 0 0 8px ${comp.color}66"></div>
+        <div class="comp-name">${comp.name}</div>
+        <span class="status-badge ${statusClass}">${statusLabel}</span>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-tab-btn data-comp="${index}" data-tab="prices" onclick="switchTab(${index},'prices')">
+          💷 Prices
+        </button>
+        <button class="tab" data-tab-btn data-comp="${index}" data-tab="promos" onclick="switchTab(${index},'promos')">
+          🏷️ Promos (${comp.promotions ? comp.promotions.length : 0})
+        </button>
+      </div>
+
+      <div class="panel active" data-comp="${index}" data-tab="prices">
+        ${pricesHtml}
+      </div>
+      <div class="panel" data-comp="${index}" data-tab="promos">
+        ${promosHtml}
+      </div>
+    </div>`, wins, losses, promos: comp.promotions ? comp.promotions.length : 0
+  };
+}
+
+async function loadData() {
+  try {
+    const resp = await fetch("../data/results.json?t=" + Date.now());
+    if (!resp.ok) throw new Error("Not found");
+    const data = await resp.json();
+
+    // Last updated
+    document.getElementById("lastUpdated").innerHTML =
+      "Updated<br>" + formatDate(data.generated_at);
+
+    // Changes alert
+    if (data.changes && data.changes.length > 0) {
+      const banner = document.getElementById("alertBanner");
+      const items = document.getElementById("alertItems");
+      banner.classList.add("visible");
+      data.changes.forEach(c => {
+        const div = document.createElement("div");
+        div.className = "alert-item";
+        if (c.type === "price_change") {
+          const arrow = c.direction === "up" ? "📈" : "📉";
+          div.textContent = `${arrow} ${c.competitor} — ${c.product}: £${c.old_price} → £${c.new_price}`;
+        } else {
+          div.textContent = `🏷️ ${c.competitor} — promotion count changed`;
+        }
+        items.appendChild(div);
+      });
+    }
+
+    // Render competitor cards
+    const container = document.getElementById("competitorCards");
+    let totalWins = 0, totalLosses = 0, totalPromos = 0;
+
+    data.competitors.forEach((comp, i) => {
+      const { html, wins, losses, promos } = renderCompetitor(comp, i);
+      container.innerHTML += html;
+      totalWins += wins;
+      totalLosses += losses;
+      totalPromos += promos;
+    });
+
+    // Summary bar
+    document.getElementById("sumWins").textContent = totalWins;
+    document.getElementById("sumLosses").textContent = totalLosses;
+    document.getElementById("sumPromos").textContent = totalPromos;
+    document.getElementById("summaryBar").style.display = "flex";
+
+  } catch (e) {
+    document.getElementById("competitorCards").innerHTML = `
+      <div class="card">
+        <div class="no-data">
+          ⚠️ Could not load data.<br><br>
+          Make sure the scraper has run at least once.<br>
+          <small style="color:var(--muted);margin-top:8px;display:block">${e.message}</small>
+        </div>
+      </div>`;
+    document.getElementById("lastUpdated").textContent = "No data yet";
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
