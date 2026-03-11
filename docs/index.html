@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -474,7 +473,7 @@ function renderCompetitor(comp, index) {
 
 async function loadData() {
   try {
-    const resp = await fetch("../data/results.json?t=" + Date.now());
+    const resp = await fetch("./results.json?t=" + Date.now());
     if (!resp.ok) throw new Error("Not found");
     const data = await resp.json();
 
