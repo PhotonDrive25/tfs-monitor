@@ -1,0 +1,98 @@
+{
+  "generated_at": "2026-03-11T07:00:00+00:00",
+  "tracked_products": [
+    "Dior Sauvage",
+    "Chanel No 5",
+    "YSL Black Opium",
+    "Carolina Herrera Good Girl",
+    "Hugo Boss Bottled",
+    "Armani Acqua di Gio",
+    "Paco Rabanne 1 Million",
+    "Marc Jacobs Daisy",
+    "Thierry Mugler Angel",
+    "Versace Eros"
+  ],
+  "competitors": [
+    {
+      "name": "The Perfume Shop",
+      "color": "#c8a96e",
+      "scraped_at": "2026-03-11T07:00:00+00:00",
+      "status": "ok",
+      "promotions": [
+        {
+          "type": "3 for 2",
+          "context": "3 for 2 on selected fragrances — mix and match across hundreds of products"
+        },
+        {
+          "type": "20% off",
+          "context": "20% off when you spend £60 or more on fragrance"
+        },
+        {
+          "type": "free gift",
+          "context": "Free fragrance sample with every order over £30"
+        }
+      ],
+      "prices": {
+        "Dior Sauvage": 89.99,
+        "Chanel No 5": 104.0,
+        "YSL Black Opium": 79.99,
+        "Carolina Herrera Good Girl": 74.99,
+        "Hugo Boss Bottled": 49.99
+      },
+      "errors": []
+    },
+    {
+      "name": "Boots",
+      "color": "#004f9f",
+      "scraped_at": "2026-03-11T07:00:00+00:00",
+      "status": "ok",
+      "promotions": [
+        {
+          "type": "half price",
+          "context": "Half price on selected women's fragrances this week only"
+        },
+        {
+          "type": "spend £60 save",
+          "context": "Spend £60 save £10 on fragrance and beauty"
+        },
+        {
+          "type": "buy 2 get",
+          "context": "Buy 2 get the cheapest free on selected men's fragrance"
+        }
+      ],
+      "prices": {
+        "Dior Sauvage": 92.0,
+        "Chanel No 5": 109.0,
+        "YSL Black Opium": 82.0,
+        "Carolina Herrera Good Girl": 78.0,
+        "Hugo Boss Bottled": 52.0
+      },
+      "errors": []
+    },
+    {
+      "name": "Superdrug",
+      "color": "#e2007a",
+      "scraped_at": "2026-03-11T07:00:00+00:00",
+      "status": "ok",
+      "promotions": [
+        {
+          "type": "10% off",
+          "context": "Health & Beautycard members get extra 10% off fragrances"
+        },
+        {
+          "type": "save £5",
+          "context": "Save £5 when you spend £25 on fragrance with code SCENT5"
+        }
+      ],
+      "prices": {
+        "Dior Sauvage": 87.99,
+        "Chanel No 5": 99.99,
+        "YSL Black Opium": 76.99,
+        "Carolina Herrera Good Girl": 72.0,
+        "Hugo Boss Bottled": 46.99
+      },
+      "errors": []
+    }
+  ],
+  "changes": []
+}
