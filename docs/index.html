@@ -363,17 +363,19 @@
 
 <script>
 // TFS prices for comparison — update these when TFS prices change
+// TFS prices — update these when prices change in store
+// Format: array of {price, size} per product
 const TFS_PRICES = {
-  "Dior Sauvage": 85.00,
-  "Chanel No 5": 98.00,
-  "YSL Black Opium": 74.00,
-  "Carolina Herrera Good Girl": 70.00,
-  "Hugo Boss Bottled": 45.00,
-  "Armani Acqua di Gio": 62.00,
-  "Paco Rabanne 1 Million": 68.00,
-  "Marc Jacobs Daisy": 59.00,
-  "Thierry Mugler Angel": 72.00,
-  "Versace Eros": 55.00,
+  "Dior Sauvage":              [{ price: 55.00, size: "60ml"  }, { price: 85.00, size: "100ml" }],
+  "Chanel No 5":               [{ price: 75.00, size: "50ml"  }, { price: 98.00, size: "100ml" }],
+  "YSL Black Opium":           [{ price: 52.00, size: "50ml"  }, { price: 74.00, size: "90ml"  }],
+  "Carolina Herrera Good Girl":[{ price: 49.00, size: "50ml"  }, { price: 70.00, size: "80ml"  }],
+  "Hugo Boss Bottled":         [{ price: 30.00, size: "50ml"  }, { price: 45.00, size: "100ml" }],
+  "Armani Acqua di Gio":       [{ price: 42.00, size: "50ml"  }, { price: 62.00, size: "100ml" }],
+  "Paco Rabanne 1 Million":    [{ price: 45.00, size: "50ml"  }, { price: 68.00, size: "100ml" }],
+  "Marc Jacobs Daisy":         [{ price: 40.00, size: "50ml"  }, { price: 59.00, size: "100ml" }],
+  "Thierry Mugler Angel":      [{ price: 50.00, size: "50ml"  }, { price: 72.00, size: "100ml" }],
+  "Versace Eros":              [{ price: 35.00, size: "50ml"  }, { price: 55.00, size: "100ml" }],
 };
 
 function formatDate(iso) {
@@ -411,33 +413,72 @@ function renderCompetitor(comp, index) {
     promosHtml = `<div class="no-data">No promotions detected</div>`;
   }
 
-  // Prices HTML
+  // Prices HTML — supports both new format [{price, size}] and legacy plain float
   let pricesHtml = "";
   let wins = 0, losses = 0;
   if (comp.prices && Object.keys(comp.prices).length > 0) {
     pricesHtml = `<table class="price-table">
-      <tr><th>Product</th><th style="text-align:right;padding-right:10px">Them</th><th style="text-align:right;padding-right:10px">TFS</th><th style="text-align:right">Verdict</th></tr>`;
-    for (const [product, price] of Object.entries(comp.prices)) {
-      const tfsPrice = TFS_PRICES[product];
-      let verdictHtml = `<span class="v-null">—</span>`;
-      if (price && tfsPrice) {
-        if (tfsPrice < price) {
-          verdictHtml = `<span class="verdict v-win">✓ TFS</span>`;
-          wins++;
-        } else if (tfsPrice > price) {
-          verdictHtml = `<span class="verdict v-loss">Act!</span>`;
-          losses++;
-        } else {
-          verdictHtml = `<span class="verdict" style="color:var(--neutral)">Same</span>`;
-        }
+      <tr>
+        <th>Product</th>
+        <th style="text-align:right;padding-right:6px">Size</th>
+        <th style="text-align:right;padding-right:6px">Them</th>
+        <th style="text-align:right;padding-right:6px">TFS</th>
+        <th style="text-align:right">Verdict</th>
+      </tr>`;
+
+    for (const [product, variants] of Object.entries(comp.prices)) {
+      const tfsEntry = TFS_PRICES[product];
+      // Normalise: could be array of {price,size} or legacy plain number
+      const variantList = Array.isArray(variants)
+        ? variants
+        : (variants ? [{ price: variants, size: null }] : []);
+
+      if (variantList.length === 0) {
+        pricesHtml += `
+          <tr>
+            <td class="product-name">${product}</td>
+            <td colspan="4" style="color:var(--muted);font-size:12px;text-align:right">No data</td>
+          </tr>`;
+        continue;
       }
-      pricesHtml += `
-        <tr>
-          <td class="product-name">${product}</td>
-          <td class="price-val" style="color:${comp.color}">${price ? "£" + price.toFixed(2) : "—"}</td>
-          <td class="price-val" style="color:var(--tfs-gold)">${tfsPrice ? "£" + tfsPrice.toFixed(2) : "—"}</td>
-          <td class="verdict-cell">${verdictHtml}</td>
-        </tr>`;
+
+      variantList.forEach((v, vi) => {
+        const compPrice = v.price;
+        const sizeLabel = v.size || "?";
+
+        // Find matching TFS size or fall back to general TFS price
+        let tfsPrice = null;
+        if (tfsEntry) {
+          if (Array.isArray(tfsEntry)) {
+            const sizeMatch = tfsEntry.find(t => t.size === v.size);
+            tfsPrice = sizeMatch ? sizeMatch.price : tfsEntry[0]?.price;
+          } else {
+            tfsPrice = tfsEntry;
+          }
+        }
+
+        let verdictHtml = `<span class="v-null">—</span>`;
+        if (compPrice && tfsPrice) {
+          if (tfsPrice < compPrice) {
+            verdictHtml = `<span class="verdict v-win">✓ TFS</span>`;
+            if (vi === 0) wins++;
+          } else if (tfsPrice > compPrice) {
+            verdictHtml = `<span class="verdict v-loss">Act!</span>`;
+            if (vi === 0) losses++;
+          } else {
+            verdictHtml = `<span class="verdict" style="color:var(--neutral)">Same</span>`;
+          }
+        }
+
+        pricesHtml += `
+          <tr style="${vi > 0 ? 'opacity:0.65' : ''}">
+            <td class="product-name" style="${vi > 0 ? 'color:transparent;font-size:4px' : ''}">${vi === 0 ? product : '&nbsp;'}</td>
+            <td style="text-align:right;padding-right:6px;font-size:11px;color:var(--muted);white-space:nowrap">${sizeLabel}</td>
+            <td class="price-val" style="color:${comp.color};padding-right:6px">${compPrice ? "£" + compPrice.toFixed(2) : "—"}</td>
+            <td class="price-val" style="color:var(--tfs-gold);padding-right:6px">${tfsPrice ? "£" + tfsPrice.toFixed(2) : "—"}</td>
+            <td class="verdict-cell">${verdictHtml}</td>
+          </tr>`;
+      });
     }
     pricesHtml += `</table>`;
   } else {
@@ -499,17 +540,20 @@ async function loadData() {
       });
     }
 
-    // Render competitor cards
+    // Render competitor cards — build all HTML first, set once to avoid tab state wipe
     const container = document.getElementById("competitorCards");
     let totalWins = 0, totalLosses = 0, totalPromos = 0;
+    let allHtml = "";
 
     data.competitors.forEach((comp, i) => {
       const { html, wins, losses, promos } = renderCompetitor(comp, i);
-      container.innerHTML += html;
+      allHtml += html;
       totalWins += wins;
       totalLosses += losses;
       totalPromos += promos;
     });
+
+    container.innerHTML = allHtml;
 
     // Summary bar
     document.getElementById("sumWins").textContent = totalWins;
